@@ -14,6 +14,24 @@ NC='\033[0m' # No Color
 echo -e "${GREEN}=== GitHub Template Setup ===${NC}"
 echo ""
 
+# Check if setup has already been completed (NO-OP check)
+# If {{NAMESPACE}} folders don't exist, check if setup was already done
+if [ ! -d "{{NAMESPACE}}" ] && [ ! -d "{{NAMESPACE}}.Tests" ]; then
+    # Look for .csproj files that don't contain {{NAMESPACE}} (indicating setup was done)
+    EXISTING_PROJECTS=$(find . -maxdepth 2 -name "*.csproj" ! -path "./.git/*" ! -name "*{{NAMESPACE}}*" 2>/dev/null | head -1)
+    if [ -n "$EXISTING_PROJECTS" ]; then
+        echo -e "${GREEN}✓ Setup has already been completed (likely by GitHub Actions)${NC}"
+        echo -e "${YELLOW}This script is a NO-OP. Your project is ready to use!${NC}"
+        echo ""
+        echo "Found existing project files:"
+        echo "$EXISTING_PROJECTS" | sed 's/^/  - /'
+        echo ""
+        exit 0
+    fi
+    echo -e "${RED}Error: Template folders not found. Make sure you're running this from the repository root.${NC}"
+    exit 1
+fi
+
 # Prompt for namespace
 if [ -z "$1" ]; then
     echo -e "${YELLOW}Enter your namespace (e.g., my.service or MyService):${NC}"
@@ -36,12 +54,6 @@ fi
 echo -e "${GREEN}Using namespace: ${NAMESPACE}${NC}"
 echo ""
 
-# Check if template folders exist
-if [ ! -d "{{NAMESPACE}}" ] || [ ! -d "{{NAMESPACE}}.Tests" ]; then
-    echo -e "${RED}Error: Template folders not found. Make sure you're running this from the repository root.${NC}"
-    exit 1
-fi
-
 # Function to replace in file
 replace_in_file() {
     local file="$1"
@@ -58,12 +70,19 @@ replace_in_file() {
 # Function to replace in all files recursively
 replace_in_all_files() {
     local dir="$1"
-    find "$dir" -type f \( -name "*.cs" -o -name "*.csproj" -o -name "*.sh" -o -name "Dockerfile" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" \) -exec bash -c 'replace_in_file "$0"' {} \;
+    if [ ! -d "$dir" ]; then
+        echo -e "${YELLOW}Warning: Directory $dir does not exist, skipping...${NC}"
+        return
+    fi
+    # Find all files and replace placeholders
+    find "$dir" -type f \( -name "*.cs" -o -name "*.csproj" -o -name "*.sh" -o -name "Dockerfile" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" \) | while read -r file; do
+        replace_in_file "$file"
+    done
 }
 
 echo -e "${YELLOW}Replacing placeholders in files...${NC}"
 
-# Replace in all files
+# Replace in all files BEFORE renaming folders
 replace_in_all_files "{{NAMESPACE}}"
 replace_in_all_files "{{NAMESPACE}}.Tests"
 replace_in_file "run.sh"
@@ -71,6 +90,25 @@ replace_in_file "README.md"
 replace_in_file "setup.sh"
 
 echo -e "${GREEN}✓ Placeholders replaced${NC}"
+
+# Verify replacements worked
+REMAINING_PLACEHOLDERS=$(grep -r "{{NAMESPACE}}" "{{NAMESPACE}}" "{{NAMESPACE}}.Tests" 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+if [ "$REMAINING_PLACEHOLDERS" -gt 0 ]; then
+    echo -e "${YELLOW}Warning: Found $REMAINING_PLACEHOLDERS remaining placeholders after replacement${NC}"
+fi
+
+# Rename .csproj files first (before renaming folders)
+echo -e "${YELLOW}Renaming project files...${NC}"
+
+if [ -f "{{NAMESPACE}}/{{NAMESPACE}}.csproj" ]; then
+    mv "{{NAMESPACE}}/{{NAMESPACE}}.csproj" "{{NAMESPACE}}/${NAMESPACE}.csproj"
+    echo -e "${GREEN}✓ Renamed {{NAMESPACE}}/{{NAMESPACE}}.csproj to ${NAMESPACE}.csproj${NC}"
+fi
+
+if [ -f "{{NAMESPACE}}.Tests/{{NAMESPACE}}.Tests.csproj" ]; then
+    mv "{{NAMESPACE}}.Tests/{{NAMESPACE}}.Tests.csproj" "{{NAMESPACE}}.Tests/${NAMESPACE}.Tests.csproj"
+    echo -e "${GREEN}✓ Renamed {{NAMESPACE}}.Tests/{{NAMESPACE}}.Tests.csproj to ${NAMESPACE}.Tests.csproj${NC}"
+fi
 
 # Rename folders
 echo -e "${YELLOW}Renaming folders...${NC}"

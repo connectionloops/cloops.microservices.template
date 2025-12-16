@@ -12,13 +12,13 @@
 
 # Getting Started
 
-This is a GitHub template repository for creating Cloops microservices. When you create a new repository from this template, you'll need to set up your namespace.
+This is a GitHub template repository for creating Cloops microservices. **You must run the setup script after cloning to bootstrap your project.**
 
-## Quick Setup
+> To learn more about `cloops.microservices`, please checkout our docs on [GitHub](https://github.com/connectionloops/cloops.microservices/tree/main/docs)
 
-### Option 1: Using the Setup Script (Recommended)
+## ⚠️ IMPORTANT: Run Setup Script First!
 
-After cloning this template repository, run the setup script:
+**Before doing anything else, you MUST run the setup script to bootstrap your project:**
 
 ```bash
 chmod +x setup.sh
@@ -28,10 +28,40 @@ chmod +x setup.sh
 The script will prompt you for your namespace (e.g., `my.service` or `MyService`) and automatically:
 
 - Replace all `{{NAMESPACE}}` placeholders in your code
-- Rename project folders
-- Update all configuration files
+- Rename project folders from `{{NAMESPACE}}` to your namespace
+- Rename `.csproj` files to match your namespace
+- Update all configuration files (Dockerfile, scripts, etc.)
 
-### Option 2: Using GitHub Actions
+> **Note:** If you used GitHub Actions to set up the template, the script will detect this and exit as a NO-OP (no operation needed).
+
+## Bootstrapping Process
+
+When you clone this template, the repository contains placeholder folders and files:
+
+- `{{NAMESPACE}}/` - Main project folder (will be renamed to your namespace)
+- `{{NAMESPACE}}.Tests/` - Test project folder (will be renamed to your namespace)
+- All code files contain `{{NAMESPACE}}` placeholders that need to be replaced
+
+The setup process (`./setup.sh`) performs the following transformations:
+
+1. **Replaces placeholders** in all `.cs`, `.csproj`, `.sh`, `Dockerfile`, and other config files
+2. **Renames project files**: `{{NAMESPACE}}.csproj` → `{YourNamespace}.csproj`
+3. **Renames folders**: `{{NAMESPACE}}/` → `{YourNamespace}/`
+4. **Updates paths** in scripts and configuration files
+
+After running `./setup.sh`, your project structure will be ready to use with your chosen namespace.
+
+## Setup Options
+
+### Option 1: Setup Script (Recommended for Local Development)
+
+```bash
+chmod +x setup.sh
+./setup.sh
+# Enter your namespace when prompted (e.g., my.service)
+```
+
+### Option 2: GitHub Actions (Recommended for Automated Setup)
 
 1. Go to the **Actions** tab in your repository
 2. Select **Setup Template** workflow
@@ -39,16 +69,19 @@ The script will prompt you for your namespace (e.g., `my.service` or `MyService`
 4. Enter your namespace when prompted
 5. The workflow will automatically replace placeholders and commit the changes
 
+> **Note:** If GitHub Actions has already run, the `./setup.sh` script will detect this and exit gracefully (NO-OP).
+
 ### Option 3: Manual Setup
 
-If you prefer to set up manually:
+If you prefer to set up manually (not recommended):
 
 1. Replace all occurrences of `{{NAMESPACE}}` with your actual namespace
 2. Rename the `{{NAMESPACE}}` folder to your namespace
 3. Rename the `{{NAMESPACE}}.Tests` folder to `{YourNamespace}.Tests`
-4. Update all `.csproj` files with your namespace
-5. Update `Dockerfile` ENTRYPOINT with your executable name
-6. Update NATS subjects in controllers and scripts
+4. Rename `{{NAMESPACE}}/{{NAMESPACE}}.csproj` to `{YourNamespace}/{YourNamespace}.csproj`
+5. Rename `{{NAMESPACE}}.Tests/{{NAMESPACE}}.Tests.csproj` to `{YourNamespace}.Tests/{YourNamespace}.Tests.csproj`
+6. Update `Dockerfile` ENTRYPOINT with your executable name
+7. Update NATS subjects in controllers and scripts
 
 ## Project Structure
 
@@ -71,6 +104,8 @@ After setup, your project will have the following structure:
 
 ## Local Setup
 
+### Prerequisites
+
 The repo needs the following local setup infrastructure dependencies:
 
 - **NATS Server** - For messaging
@@ -78,10 +113,12 @@ The repo needs the following local setup infrastructure dependencies:
 
 ### Running the Project Locally
 
+**First, make sure you've run `./setup.sh` to bootstrap your project!**
+
 It is assumed that your environment variables are loaded from `.env` file. Please use a dedicated config and secret management solution. Please see our docs around config for more info.
 
 ```bash
-# Run the app
+# After running ./setup.sh, run the app
 chmod +x run.sh
 ./run.sh
 

@@ -34,11 +34,22 @@ jobs:
           
           echo "Using namespace: $NAMESPACE"
           
-          # Replace placeholders in all files
-          find . -type f \( -name "*.cs" -o -name "*.csproj" -o -name "*.sh" -o -name "Dockerfile" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" \) \
-            ! -path "./.git/*" \
-            ! -path "./.github/*" \
-            -exec sed -i "s/{{NAMESPACE}}/${NAMESPACE}/g" {} \;
+          # Replace placeholders in all files BEFORE renaming
+          find ./{{NAMESPACE}} ./{{NAMESPACE}}.Tests -type f \( -name "*.cs" -o -name "*.csproj" -o -name "*.sh" -o -name "Dockerfile" -o -name "*.md" \) 2>/dev/null | while read -r file; do
+            sed -i "s/{{NAMESPACE}}/${NAMESPACE}/g" "$file"
+          done
+          
+          # Replace in root files
+          sed -i "s/{{NAMESPACE}}/${NAMESPACE}/g" run.sh README.md setup.sh 2>/dev/null || true
+          
+          # Rename .csproj files first
+          if [ -f "{{NAMESPACE}}/{{NAMESPACE}}.csproj" ]; then
+            mv "{{NAMESPACE}}/{{NAMESPACE}}.csproj" "{{NAMESPACE}}/${NAMESPACE}.csproj"
+          fi
+          
+          if [ -f "{{NAMESPACE}}.Tests/{{NAMESPACE}}.Tests.csproj" ]; then
+            mv "{{NAMESPACE}}.Tests/{{NAMESPACE}}.Tests.csproj" "{{NAMESPACE}}.Tests/${NAMESPACE}.Tests.csproj"
+          fi
           
           # Rename folders
           if [ -d "{{NAMESPACE}}" ]; then
@@ -49,8 +60,8 @@ jobs:
             mv "{{NAMESPACE}}.Tests" "${NAMESPACE}.Tests"
           fi
           
-          # Update run.sh
-          sed -i "s/cd {{NAMESPACE}}/cd ${NAMESPACE}/g" run.sh || true
+          # Update run.sh path (should already be done, but ensure it)
+          sed -i "s/cd {{NAMESPACE}}/cd ${NAMESPACE}/g" run.sh 2>/dev/null || true
 
       - name: Commit changes
         run: |
